@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NellRise — Правила сервера</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    min-height: 100vh;
+    padding: 60px 20px;
+    overflow-x: hidden;
+    background: linear-gradient(180deg, #2f8fd0 0%, #59b0e3 20%, #86caf0 40%, #b4e0f7 60%, #d8effb 80%, #eef8ff 100%);
+    background-attachment: fixed;
+  }
+
+  /* ===== ОБЛАКА ===== */
+  .sky { position: fixed; inset: 0; overflow: hidden; z-index: 0; pointer-events: none; }
+
+  .cloud {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(22px);
+    will-change: transform;
+    opacity: 0.9;
+    background:
+      radial-gradient(ellipse 55% 65% at 35% 40%, rgba(255,255,255,1) 0%, rgba(255,255,255,0.85) 25%, rgba(255,255,255,0) 65%),
+      radial-gradient(ellipse 60% 75% at 60% 35%, rgba(255,255,255,1) 0%, rgba(255,255,255,0.8) 30%, rgba(255,255,255,0) 70%),
+      radial-gradient(ellipse 50% 60% at 45% 65%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.65) 35%, rgba(255,255,255,0) 75%),
+      radial-gradient(ellipse 70% 45% at 55% 85%, rgba(190,220,245,0.75) 0%, rgba(190,220,245,0) 70%),
+      radial-gradient(ellipse 45% 55% at 80% 55%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 70%),
+      radial-gradient(ellipse 40% 50% at 15% 60%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 70%);
+  }
+
+  @keyframes drift {
+    from { transform: translateX(-60vw); }
+    to   { transform: translateX(160vw); }
+  }
+
+  .cloud.c1 { width: 640px; height: 260px; top: 3%;  animation: drift 100s linear infinite; }
+  .cloud.c2 { width: 440px; height: 180px; top: 16%; animation: drift 145s linear infinite; animation-delay: -30s; }
+  .cloud.c3 { width: 800px; height: 320px; top: 30%; animation: drift 120s linear infinite; animation-delay: -60s; }
+  .cloud.c4 { width: 500px; height: 200px; top: 46%; animation: drift 165s linear infinite; animation-delay: -20s; }
+  .cloud.c5 { width: 680px; height: 275px; top: 60%; animation: drift 115s linear infinite; animation-delay: -75s; }
+  .cloud.c6 { width: 380px; height: 155px; top: 74%; animation: drift 180s linear infinite; animation-delay: -50s; }
+  .cloud.c7 { width: 580px; height: 240px; top: 87%; animation: drift 130s linear infinite; animation-delay: -10s; }
+
+  /* ===== КОНТЕЙНЕР ===== */
+  .container { max-width: 1000px; margin: 0 auto; position: relative; z-index: 2; }
+
+  /* ===== ШАПКА ===== */
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding: 45px 20px;
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(8px) saturate(140%);
+    -webkit-backdrop-filter: blur(8px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 26px;
+    box-shadow: 0 10px 40px rgba(20, 90, 150, 0.12), inset 0 1px 0 rgba(255,255,255,0.35);
+  }
+  h1 {
+    font-size: 3.8em; font-weight: 900; letter-spacing: 4px; color: #fff;
+    text-shadow: 0 2px 0 #1a6aa3, 0 6px 22px rgba(15, 70, 120, 0.6), 0 0 45px rgba(160, 220, 255, 0.85);
+    margin-bottom: 14px;
+  }
+  .subtitle {
+    color: #fff; font-size: 1.15em; font-weight: 600; letter-spacing: 6px;
+    text-transform: uppercase;
+    text-shadow: 0 2px 12px rgba(15, 70, 120, 0.7), 0 0 25px rgba(160, 220, 255, 0.8);
+    opacity: 0.95;
+  }
+  .divider {
+    width: 140px; height: 3px; margin: 24px auto 0;
+    background: linear-gradient(90deg, transparent, #fff, transparent);
+    border-radius: 3px; box-shadow: 0 0 25px rgba(255,255,255,1);
+  }
+
+  /* ===== КНОПКА МОДОВ ===== */
+  .mods-btn-wrap { text-align: center; margin-bottom: 40px; }
+  .mods-btn {
+    display: inline-block; padding: 16px 42px; font-size: 1.05em; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase; color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.55);
+    border-radius: 50px; cursor: pointer;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 8px 30px rgba(20, 90, 150, 0.3), inset 0 1px 0 rgba(255,255,255,0.4), 0 0 25px rgba(160, 220, 255, 0.5);
+    text-shadow: 0 2px 10px rgba(15, 70, 120, 0.7);
+    transition: all 0.3s ease;
+  }
+  .mods-btn:hover {
+    background: rgba(255, 255, 255, 0.22);
+    transform: translateY(-3px);
+    box-shadow: 0 14px 40px rgba(20, 90, 150, 0.45), inset 0 1px 0 rgba(255,255,255,0.6), 0 0 40px rgba(160, 220, 255, 0.85);
+  }
+
+  /* ===== БЛОКИ ПРАВИЛ ===== */
+  .section {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(6px) saturate(140%);
+    -webkit-backdrop-filter: blur(6px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 24px;
+    padding: 34px 38px;
+    margin-bottom: 32px;
+    box-shadow: 0 10px 36px rgba(20, 90, 150, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+  }
+  .section h2 {
+    font-size: 1.75em; color: #fff; margin-bottom: 22px; padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3); letter-spacing: 0.6px;
+    text-shadow: 0 2px 14px rgba(15, 70, 120, 0.75), 0 0 30px rgba(160, 220, 255, 0.8);
+  }
+
+  .rule {
+    display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;
+    padding: 15px 18px; margin-bottom: 11px; border-radius: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-left: 4px solid rgba(255, 255, 255, 0.55);
+  }
+  .rule-text {
+    font-size: 1.02em; line-height: 1.55; color: #0a3555; font-weight: 600;
+    text-shadow:
+      0 0 6px rgba(140, 220, 255, 0.95),
+      0 0 14px rgba(120, 200, 255, 0.85),
+      0 0 26px rgba(90, 180, 240, 0.55),
+      0 1px 2px rgba(255, 255, 255, 0.5);
+  }
+  .rule-text b {
+    color: #05243d; font-weight: 800;
+    text-shadow:
+      0 0 8px rgba(150, 230, 255, 1),
+      0 0 18px rgba(120, 200, 255, 0.95),
+      0 0 32px rgba(80, 170, 235, 0.65);
+  }
+  .rule-text .note {
+    display: block;
+    margin-top: 12px;
+    padding: 10px 14px 10px 18px;
+    font-size: 0.94em;
+    font-weight: 500;
+    font-style: italic;
+    line-height: 1.5;
+    color: #0d3e63;
+    background: rgba(255, 255, 255, 0.18);
+    border-left: 3px solid rgba(46, 159, 214, 0.85);
+    border-radius: 0 10px 10px 0;
+    box-shadow: inset 0 0 12px rgba(160, 220, 255, 0.25);
+    text-shadow: 0 0 6px rgba(150, 230, 255, 0.85), 0 0 14px rgba(120, 200, 255, 0.55), 0 1px 2px rgba(255, 255, 255, 0.4);
+    position: relative;
+  }
+  .rule-text .note::before {
+    content: '❝';
+    position: absolute;
+    top: -6px; left: 6px;
+    font-size: 1.4em; font-style: normal;
+    color: rgba(46, 159, 214, 0.9);
+    text-shadow: 0 0 10px rgba(160, 220, 255, 0.9);
+    line-height: 1;
+  }
+
+  .punish {
+    flex-shrink: 0; font-size: 0.85em; font-weight: 700; color: #fff;
+    background: linear-gradient(135deg, #2e9fd6, #1577b3);
+    padding: 7px 16px; border-radius: 30px; white-space: nowrap;
+    box-shadow: 0 5px 16px rgba(21, 119, 179, 0.5), inset 0 1px 0 rgba(255,255,255,0.35);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .punish.warn { background: linear-gradient(135deg, #f6b73c, #e08a00); }
+  .punish.mute { background: linear-gradient(135deg, #7ec8f0, #2e9fd6); }
+  .punish.ban  { background: linear-gradient(135deg, #e26a6a, #c03232); }
+  .punish.perm { background: linear-gradient(135deg, #4a4a6a, #1a1a2e); }
+  .punish.none { background: linear-gradient(135deg, #9ec9a0, #5a9e5e); }
+
+  footer {
+    text-align: center; margin-top: 50px; padding: 22px;
+    color: #fff; font-size: 0.98em; font-weight: 700; letter-spacing: 2px;
+    text-shadow: 0 2px 14px rgba(15, 70, 120, 0.8), 0 0 30px rgba(160, 220, 255, 0.8);
+  }
+
+  /* ===== МОДАЛЬНОЕ ОКНО ===== */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(10, 40, 70, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: none; align-items: center; justify-content: center;
+    z-index: 100; padding: 20px;
+  }
+  .modal-overlay.active { display: flex; animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    width: 100%; max-width: 720px; max-height: 85vh; overflow-y: auto;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(22px) saturate(160%);
+    -webkit-backdrop-filter: blur(22px) saturate(160%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 26px; padding: 36px 40px;
+    box-shadow: 0 25px 70px rgba(10, 50, 90, 0.45), inset 0 1px 0 rgba(255,255,255,0.5);
+    position: relative; animation: slideUp 0.35s ease;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .modal::-webkit-scrollbar { width: 8px; }
+  .modal::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 10px; }
+  .modal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.35); border-radius: 10px; }
+  .modal h3 {
+    font-size: 1.8em; color: #fff; margin-bottom: 22px; padding-bottom: 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.35); letter-spacing: 1px;
+    text-shadow: 0 2px 14px rgba(15, 70, 120, 0.8), 0 0 30px rgba(160, 220, 255, 0.85);
+  }
+  .mods-list { display: flex; flex-wrap: wrap; gap: 10px; }
+  .mod-item {
+    padding: 9px 16px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 30px; color: #05243d;
+    font-weight: 600; font-size: 0.95em;
+    text-shadow: 0 0 8px rgba(150, 230, 255, 0.9), 0 0 16px rgba(120, 200, 255, 0.7);
+    transition: background 0.25s ease, transform 0.25s ease;
+  }
+  .mod-item:hover { background: rgba(255, 255, 255, 0.25); transform: translateY(-2px); }
+  .modal-close {
+    position: absolute; top: 18px; right: 22px;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: #fff; font-size: 1.4em; font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.25s ease;
+    text-shadow: 0 2px 8px rgba(15, 70, 120, 0.8);
+  }
+  .modal-close:hover { background: rgba(255, 255, 255, 0.35); transform: rotate(90deg); }
+
+  @media (max-width: 640px) {
+    h1 { font-size: 2.4em; letter-spacing: 2px; }
+    .section { padding: 24px 20px; }
+    .rule { flex-direction: column; gap: 9px; }
+    .punish { align-self: flex-start; }
+    body { padding: 30px 12px; }
+    .modal { padding: 26px 22px; }
+    .modal h3 { font-size: 1.4em; }
+    .mods-btn { padding: 13px 28px; font-size: 0.9em; }
+    .cloud { filter: blur(16px); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ОБЛАКА -->
+<div class="sky">
+  <div class="cloud c1"></div>
+  <div class="cloud c2"></div>
+  <div class="cloud c3"></div>
+  <div class="cloud c4"></div>
+  <div class="cloud c5"></div>
+  <div class="cloud c6"></div>
+  <div class="cloud c7"></div>
+</div>
+
+<div class="container">
+
+  <header>
+    <h1>NellRise</h1>
+    <div class="subtitle">Правила сервера</div>
+    <div class="divider"></div>
+  </header>
+
+  <div class="mods-btn-wrap">
+    <button type="button" class="mods-btn" id="openModsBtn">Запрещённые моды</button>
+  </div>
+
+  <!-- ОБЩИЕ ПОЛОЖЕНИЯ -->
+  <section class="section">
+    <h2>Общие положения</h2>
+    <div class="rule"><div class="rule-text"><b>1.1.</b> Играя на нашем проекте, вы соглашаетесь с данным сводом правил и несёте полную ответственность за их нарушение.</div><div class="punish none">—</div></div>
+    <div class="rule"><div class="rule-text"><b>1.2.</b> Высшая Администрация вправе выдать наказание по несуществующему правилу, без объяснения причины. Администрация имеет право не предоставлять доказательства о нарушении правил — только сотрудникам, стоящим выше по званию.</div><div class="punish none">—</div></div>
+    <div class="rule"><div class="rule-text"><b>1.3.</b> Незнание правил не освобождает вас от ответственности.</div><div class="punish none">—</div></div>
+    <div class="rule"><div class="rule-text"><b>1.4.</b> Правила сервера могут быть изменены в любой момент. Просим вас периодически проверять их.</div><div class="punish none">—</div></div>
+    <div class="rule"><div class="rule-text"><b>1.5.</b> Каждый игрок имеет право на обжалование выданного наказания. На обжалование даётся 3 дня.</div><div class="punish none">—</div></div>
+    <div class="rule"><div class="rule-text"><b>1.6.</b> Потраченные средства на донат считаются добровольным пожертвованием проекту и не подлежат возврату.</div><div class="punish none">—</div></div>
+    <div class="rule"><div class="rule-text"><b>1.7.</b> Администрация не возвращает утраченные ресурсы и валюту — даже если потеря произошла из-за читеров, багов или других технических проблем.</div><div class="punish none">—</div></div>
+    <div class="rule"><div class="rule-text"><b>1.8.</b> Игроки обязаны соблюдать все правила проекта.</div><div class="punish none">—</div></div>
+  </section>
+
+  <!-- ПРАВИЛА ЧАТА -->
+  <section class="section">
+    <h2>Правила чата</h2>
+    <div class="rule">
+      <div class="rule-text"><b>2.1.</b> Запрещены капс, спам и флуд символами в любом виде.
+        <span class="note">Капс — от 7 символов верхнего регистра. Спам — от 3 одинаковых сообщений в течение 1 минуты. Флуд символами — сообщение, содержащее от 15 бессмысленных символов.</span>
+      </div>
+      <div class="punish mute">Мут 15 минут</div>
+    </div>
+    <div class="rule"><div class="rule-text"><b>2.1.1.</b> Запрещено попрошайничество.</div><div class="punish mute">Мут 15 минут</div></div>
+    <div class="rule"><div class="rule-text"><b>2.1.2.</b> Запрещена организация флуда. <span class="note">Пример: «Сколько вам лет?», «Кому ресурсов — пиши я!», «Кто напишет в чат 1 — получит подарок».</span></div><div class="punish mute">Мут 30–60 минут</div></div>
+    <div class="rule"><div class="rule-text"><b>2.2.</b> Запрещено оскорблять игроков.</div><div class="punish mute">Мут 30 минут</div></div>
+    <div class="rule"><div class="rule-text"><b>2.2.1.</b> Запрещены оскорбления, задевания и упоминание родных.</div><div class="punish mute">Мут 5 часов</div></div>
+    <div class="rule"><div class="rule-text"><b>2.2.2.</b> Запрещено оскорбление команды проекта.</div><div class="punish mute">Мут 2 часа</div></div>
+    <div class="rule"><div class="rule-text"><b>2.3.</b> Запрещено аморальное поведение: грубая травля, деанонимизация (угрозы доксинга), пожелание вреда в реальной жизни.</div><div class="punish mute">Мут 1 час</div></div>
+    <div class="rule"><div class="rule-text"><b>2.4.</b> Запрещены политические высказывания, задевание темы религий и разжигание межнациональной ссоры.</div><div class="punish mute">Мут 7 часов</div></div>
+    <div class="rule"><div class="rule-text"><b>2.5.</b> Запрещена реклама сторонних проектов, сайтов и IP-адресов.</div><div class="punish perm">Бан по IP 90+ дней</div></div>
+    <div class="rule"><div class="rule-text"><b>2.6.</b> Запрещено оскорбление проекта.</div><div class="punish mute">Мут 6–12 часов</div></div>
+  </section>
+
+  <!-- ОБЩИЕ ПРАВИЛА ИГРЫ -->
+  <section class="section">
+    <h2>Общие правила игры</h2>
+    <div class="rule"><div class="rule-text"><b>3.1.</b> Запрещено использование запрещённого ПО и чит-клиентов. При повторном нарушении бан по айпи</div><div class="punish ban">Бан 30 дней / IP</div></div>
+    <div class="rule"><div class="rule-text"><b>3.1.1.</b> Запрещено хранение запрещённого ПО. Файлы старше 15 дней хранением не считаются.</div><div class="punish ban">Бан 30 дней</div></div>
+    <div class="rule"><div class="rule-text"><b>3.1.2.</b> Запрещён отказ от проверки.</div><div class="punish ban">Бан 30 дней</div></div>
+    <div class="rule"><div class="rule-text"><b>3.1.3.</b> Запрещено игнорирование проверки.</div><div class="punish ban">Бан 30 дней</div></div>
+    <div class="rule"><div class="rule-text"><b>3.1.4.</b> Запрещён выход с проверки.</div><div class="punish ban">Бан 30 дней</div></div>
+    <div class="rule"><div class="rule-text"><b>3.1.5.</b> Запрещено оскорбление и неуважительное отношение к проверяющему.</div><div class="punish warn">1 варн (3/3 — бан 30 дней)</div></div>
+    <div class="rule"><div class="rule-text"><b>3.1.6.</b> Запрещена помеха проверке.</div><div class="punish warn">1 варн (3/3 — бан 30 дней)</div></div>
+    <div class="rule"><div class="rule-text"><b>3.1.7.</b> Признание на проверке.</div><div class="punish ban">Бан 20 дней</div></div>
+    <div class="rule"><div class="rule-text"><b>3.2.</b> Запрещён тим с читером, дюпером или багоюзером — нахождение с ним в одной команде или клане, если вы знали о нарушении и пользовались этим.</div><div class="punish ban">Бан 5 дней</div></div>
+    <div class="rule"><div class="rule-text"><b>3.3.</b> Запрещён дюп и багоюз — использование технических недоработок, багов, ошибок и любых уязвимостей сервера с целью получения преимущества. <span class="note">В каждом случае необходимо обращаться к администрации для выдачи наказания, соответствующего нарушению.</span></div><div class="punish ban">Бан 5+ дней</div></div>
+    <div class="rule"><div class="rule-text"><b>3.4.</b> Запрещено снятие бана или блокировки чата без причины.</div><div class="punish ban">Бан 2–7 дней / понижение доната</div></div>
+    <div class="rule"><div class="rule-text"><b>3.5.</b> Запрещён обход бана — создание твинков с целью повторного нарушения. Считается при наличии 3+ аккаунтов в бане.</div><div class="punish perm">Бан по IP</div></div>
+    <div class="rule"><div class="rule-text"><b>3.6.</b> Запрещён обход блокировки чата — создание твинков с целью повторного нарушения.</div><div class="punish perm">Бан по IP</div></div>
+    <div class="rule"><div class="rule-text"><b>3.7.</b> Запрещены любые действия, причиняющие вред проекту: взлом аккаунтов, DDoS-атаки, создание лагов.</div><div class="punish perm">Бан по IP навсегда + ЧСП</div></div>
+    <div class="rule"><div class="rule-text"><b>3.8.</b> Запрещено использование ников, имеющих схожесть с пользователями в ЧСП, с чит-клиентами, а также ников с нецензурной лексикой.</div><div class="punish perm">Бан навсегда</div></div>
+    <div class="rule"><div class="rule-text"><b>3.9.</b> Запрещено злоупотребление правами — использование команд /fly, /god и других команд, дающих преимущество.</div><div class="punish ban">Бан 3–5 дней / понижение привилегии</div></div>
+    <div class="rule"><div class="rule-text"><b>3.10.</b> Запрещена продажа и передача аккаунта третьим лицам.</div><div class="punish perm">Бан навсегда</div></div>
+  </section>
+
+  <!-- ИГРОВОЙ ПРОЦЕСС -->
+  <section class="section">
+    <h2>Игровой процесс</h2>
+    <div class="rule"><div class="rule-text"><b>4.1.</b> Запрещено создавать ловушки непосредственно на точке варпа или в радиусе 10 блоков от неё. Также запрещено блокировать возможность покинуть ловушку через хорус или перку.</div><div class="punish ban">Бан 1–3 дня</div></div>
+    <div class="rule"><div class="rule-text"><b>4.2.</b> Запрещена подача ложных жалоб — обращений на игрока без причины или с целью подставить его.</div><div class="punish ban">Бан 12–24 часа</div></div>
+    <div class="rule"><div class="rule-text"><b>4.3.</b> Запрещено создание лаг-машин и механизмов, намеренно нагружающих сервер.</div><div class="punish perm">Бан по IP навсегда</div></div>
+    <div class="rule"><div class="rule-text"><b>4.4.</b> Запрещено выдавать себя за администрацию проекта, а также угрожать баном, киком или мутом.</div><div class="punish ban">Бан 3 дня</div></div>
+  </section>
+
+  <footer>NellRise — играй честно и с уважением</footer>
+</div>
+
+<!-- МОДАЛЬНОЕ ОКНО -->
+<div class="modal-overlay" id="modsModal">
+  <div class="modal">
+    <button type="button" class="modal-close" id="closeModsBtn">×</button>
+    <h3>Запрещённые моды</h3>
+    <div class="mods-list">
+      <div class="mod-item">WorldDownloader</div>
+      <div class="mod-item">AutoMining</div>
+      <div class="mod-item">Baritone</div>
+      <div class="mod-item">ReplantingCrops</div>
+      <div class="mod-item">AutoHarvest</div>
+      <div class="mod-item">Reap</div>
+      <div class="mod-item">Accurate Block Placement</div>
+      <div class="mod-item">Tweakeroo</div>
+      <div class="mod-item">ChestTracker</div>
+      <div class="mod-item">XRay</div>
+      <div class="mod-item">DiamondGen</div>
+      <div class="mod-item">BaseFinder</div>
+      <div class="mod-item">TrueSight</div>
+      <div class="mod-item">block-entity-tooltip</div>
+      <div class="mod-item">CheatUtils</div>
+      <div class="mod-item">FreeCam</div>
+      <div class="mod-item">AutoAttack</div>
+      <div class="mod-item">AutoAim</div>
+      <div class="mod-item">CleanCut</div>
+      <div class="mod-item">Dont Heat Teammates</div>
+      <div class="mod-item">Don't hit teammates</div>
+      <div class="mod-item">RemoveBlindness</div>
+      <div class="mod-item">AutoLeave</div>
+      <div class="mod-item">FasterBlockPlacement</div>
+      <div class="mod-item">Firework Helper</div>
+      <div class="mod-item">AutoJumpReset</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var modal = document.getElementById('modsModal');
+  var openBtn = document.getElementById('openModsBtn');
+  var closeBtn = document.getElementById('closeModsBtn');
+
+  openBtn.addEventListener('click', function () {
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  });
+
+  closeBtn.addEventListener('click', function () {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  });
+
+  modal.addEventListener('click', function (e) {
+    if (e.target === modal) {
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && modal.classList.contains('active')) {
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+  });
+</script>
+
+</body>
+</html>
